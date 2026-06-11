@@ -20,6 +20,7 @@ import MCPConnectionStatus from "./mcp_connection_status";
 import MCPToolConfiguration from "./mcp_tool_configuration";
 import StdioConfiguration from "./StdioConfiguration";
 import MCPPermissionManagement from "./MCPPermissionManagement";
+import DelegateAuthToUpstreamField from "./DelegateAuthToUpstreamField";
 import OpenAPIFormSection, { OpenAPIKeyTool } from "./OpenAPIFormSection";
 import MCPLogoSelector from "./MCPLogoSelector";
 import { isAdminRole } from "@/utils/roles";
@@ -897,6 +898,8 @@ const CreateMCPServer: React.FC<CreateMCPServerProps> = ({
                 ]}
               />
             )}
+
+            {transportType !== "stdio" && transportType !== "" && <DelegateAuthToUpstreamField mcpServer={null} />}
 
             {transportType !== "stdio" && transportType !== "" && isAwsSigV4AuthType && (
               <>

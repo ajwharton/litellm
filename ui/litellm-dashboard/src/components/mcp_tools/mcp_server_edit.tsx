@@ -16,6 +16,7 @@ import { getToken, isTokenValid, setToken } from "@/utils/mcpTokenStore";
 import { buildMcpPassthroughAuthHeader } from "@/utils/mcpHeaderUtils";
 import MCPServerCostConfig from "./mcp_server_cost_config";
 import MCPPermissionManagement from "./MCPPermissionManagement";
+import DelegateAuthToUpstreamField from "./DelegateAuthToUpstreamField";
 import MCPToolConfiguration from "./mcp_tool_configuration";
 import StdioConfiguration from "./StdioConfiguration";
 import MCPLogoSelector from "./MCPLogoSelector";
@@ -1050,6 +1051,8 @@ const MCPServerEdit: React.FC<MCPServerEditProps> = ({
                 </div>
               </>
             )}
+
+            {!isStdioTransport && <DelegateAuthToUpstreamField mcpServer={mcpServer} />}
 
             {!isStdioTransport && isAwsSigV4AuthType && (
               <>
