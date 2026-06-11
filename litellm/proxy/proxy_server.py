@@ -329,6 +329,9 @@ from litellm.proxy.health_check import (
     perform_health_check,
 )
 from litellm.proxy.health_endpoints._health_endpoints import router as health_router
+from litellm.proxy.hooks.capability_routing import (  # noqa: F401 — registers pre-call hook
+    capability_routing_hook,
+)
 from litellm.proxy.hooks.model_max_budget_limiter import (
     _PROXY_VirtualKeyModelMaxBudgetLimiter,
 )

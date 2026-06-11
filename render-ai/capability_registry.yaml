@@ -1,0 +1,69 @@
+# render.ai capability registry — governed artifact (LiteLLM model groups)
+# Edit model targets here; prompts declare capabilities via #pragma, never model names.
+#
+# Start proxy:
+#   litellm --config render-ai/capability_registry.yaml --port 4000
+#
+# Env (see .env.example): OPENROUTER_API_KEY, LITELLM_MASTER_KEY
+
+model_list:
+  # high-reasoning — INDEX / PLAN / ambiguous RCA (cheapest first in list order)
+  - model_name: high-reasoning
+    litellm_params:
+      model: openrouter/google/gemini-2.0-flash-001
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: high-reasoning
+    litellm_params:
+      model: openrouter/anthropic/claude-sonnet-4
+      api_key: os.environ/OPENROUTER_API_KEY
+
+  # high-coding — fenced IMPLEMENT
+  - model_name: high-coding
+    litellm_params:
+      model: openrouter/qwen/qwen-2.5-coder-32b-instruct
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: high-coding
+    litellm_params:
+      model: openrouter/anthropic/claude-sonnet-4
+      api_key: os.environ/OPENROUTER_API_KEY
+
+  # cheap-deterministic — mechanical / doc passes (eval before high-stakes use)
+  - model_name: cheap-deterministic
+    litellm_params:
+      model: openrouter/google/gemini-2.0-flash-lite-001
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: cheap-deterministic
+    litellm_params:
+      model: openrouter/google/gemini-2.0-flash-001
+      api_key: os.environ/OPENROUTER_API_KEY
+
+  # multimodal — screenshot / diagram ingest
+  - model_name: multimodal
+    litellm_params:
+      model: openrouter/google/gemini-2.0-flash-001
+      api_key: os.environ/OPENROUTER_API_KEY
+
+  # passthrough — explicit model requests bypass capability groups
+  - model_name: openrouter/*
+    litellm_params:
+      model: openrouter/*
+      api_key: os.environ/OPENROUTER_API_KEY
+
+router_settings:
+  routing_strategy: simple-shuffle
+  num_retries: 2
+  timeout: 120
+  fallbacks:
+    - high-coding: ["high-reasoning"]
+    - cheap-deterministic: ["high-coding", "high-reasoning"]
+    - multimodal: ["high-reasoning"]
+
+litellm_settings:
+  drop_params: true
+  set_verbose: false
+  request_timeout: 600
+  # Capability hook registers automatically (render.ai fork)
+  success_callback: []
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
