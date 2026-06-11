@@ -53,8 +53,16 @@ proxy under systemd user service `render-litellm`.
 
 ## Registry governance
 
-`render-ai/capability_registry.yaml` `model_list` entries sharing a `model_name` form a capability
-group. Re-point models by editing this file only — prompts stay stable.
+`render-ai/capability_registry.yaml` maps capabilities to **direct provider APIs** (no OpenRouter):
+
+| Capability | Models (fallback order) |
+|------------|-------------------------|
+| `high-reasoning` | Kimi K2.6 → Claude Sonnet 4.5 → Grok 4.1 fast-reasoning |
+| `high-coding` | Kimi K2.6 → Claude Sonnet 4.5 → GPT-4.1 mini |
+| `cheap-deterministic` | Grok 3 mini → GPT-5 mini → Grok 4.1 fast (non-reasoning) |
+| `multimodal` | Kimi K2.6 → Grok 2 vision → Claude Sonnet 4.5 |
+
+Re-point models by editing the registry only — prompts stay stable.
 
 Pair with render.ai docs: `docs/capability-routing.md` in the render-ai repo.
 
