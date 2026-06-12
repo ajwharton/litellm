@@ -8,6 +8,7 @@ import threading
 import time
 import uuid
 import webbrowser
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Any, Dict, Optional, Tuple, Union
 from urllib.parse import parse_qs, urlencode, urlparse
@@ -109,7 +110,7 @@ class XAIOAuthAuthenticator:
         auth_data = self._read_auth_file()
         if not auth_data:
             raise XAIOAuthLoginRequiredError(
-                "xAI OAuth login required. Run `litellm xai-oauth login`."
+                "xAI OAuth login required. Run `grok login` (Grok Build) or `litellm xai-oauth login`."
             )
 
         access_token = auth_data.get("access_token")
@@ -195,13 +196,85 @@ class XAIOAuthAuthenticator:
         except OSError:
             verbose_logger.debug("Could not chmod xAI OAuth token directory")
 
-    def _read_auth_file(self) -> Optional[Dict[str, Any]]:
+    def _grok_build_auth_file(self) -> str:
+        return (
+            get_secret_str("GROK_BUILD_AUTH_FILE")
+            or os.path.expanduser("~/.grok/auth.json")
+        )
+
+    def _read_json_file(self, path: str) -> Optional[Dict[str, Any]]:
         try:
-            with open(self.auth_file, "r") as f:
+            with open(path, "r") as f:
                 data = json.load(f)
             return data if isinstance(data, dict) else None
-        except (IOError, json.JSONDecodeError):
+        except (IOError, json.JSONDecodeError, TypeError):
             return None
+
+    def _parse_expires_at(self, expires_at: Any) -> Optional[float]:
+        if expires_at is None:
+            return None
+        if isinstance(expires_at, (int, float)):
+            return float(expires_at)
+        if isinstance(expires_at, str):
+            try:
+                dt = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                return dt.timestamp()
+            except ValueError:
+                return None
+        return None
+
+    def _normalize_grok_build_auth(
+        self, raw: Dict[str, Any], token_endpoint: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        entry: Optional[Dict[str, Any]] = None
+        if raw.get("access_token"):
+            entry = raw
+        else:
+            for value in raw.values():
+                if isinstance(value, dict) and value.get("key"):
+                    entry = value
+                    break
+        if not entry:
+            return None
+
+        access_token = entry.get("key") or entry.get("access_token")
+        refresh_token = entry.get("refresh_token")
+        if not access_token:
+            return None
+
+        expires_at = self._parse_expires_at(entry.get("expires_at"))
+        endpoint = token_endpoint
+        if not endpoint:
+            try:
+                endpoint = self._discover()["token_endpoint"]
+            except XAIOAuthError:
+                endpoint = f"{XAI_OAUTH_ISSUER}/oauth/token"
+
+        normalized: Dict[str, Any] = {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_endpoint": endpoint,
+            "source": "grok-build",
+        }
+        if expires_at is not None:
+            normalized["expires_at"] = int(expires_at)
+        return normalized
+
+    def _read_grok_build_auth_file(self) -> Optional[Dict[str, Any]]:
+        raw = self._read_json_file(self._grok_build_auth_file())
+        if not raw:
+            return None
+        return self._normalize_grok_build_auth(raw)
+
+    def _read_auth_file(self) -> Optional[Dict[str, Any]]:
+        data = self._read_json_file(self.auth_file)
+        if data and (data.get("access_token") or data.get("key")):
+            if data.get("access_token"):
+                return data
+            return self._normalize_grok_build_auth(data)
+        return self._read_grok_build_auth_file()
 
     def _write_auth_file(self, data: Dict[str, Any]) -> None:
         self._ensure_token_dir()
@@ -235,13 +308,10 @@ class XAIOAuthAuthenticator:
             raise
 
     def _is_expired(self, auth_data: Dict[str, Any]) -> bool:
-        expires_at = auth_data.get("expires_at")
+        expires_at = self._parse_expires_at(auth_data.get("expires_at"))
         if expires_at is None:
             return True
-        try:
-            return time.time() >= float(expires_at) - XAI_OAUTH_EXPIRY_SKEW_SECONDS
-        except (TypeError, ValueError):
-            return True
+        return time.time() >= expires_at - XAI_OAUTH_EXPIRY_SKEW_SECONDS
 
     def _discover(self) -> Dict[str, str]:
         try:

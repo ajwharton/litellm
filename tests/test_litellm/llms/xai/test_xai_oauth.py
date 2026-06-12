@@ -49,6 +49,25 @@ def test_get_access_token_uses_fresh_local_token(tmp_path, monkeypatch):
     assert XAIOAuthAuthenticator().get_access_token() == "fresh-token"
 
 
+def test_get_access_token_reads_grok_build_auth_file(tmp_path, monkeypatch):
+    grok_auth = tmp_path / "grok-auth.json"
+    grok_auth.write_text(
+        json.dumps(
+            {
+                "https://auth.x.ai::client": {
+                    "key": "grok-oauth-token",
+                    "refresh_token": "grok-refresh",
+                    "expires_at": "2099-01-01T00:00:00Z",
+                }
+            }
+        )
+    )
+    monkeypatch.setenv("XAI_OAUTH_TOKEN_DIR", str(tmp_path / "missing-litellm"))
+    monkeypatch.setenv("GROK_BUILD_AUTH_FILE", str(grok_auth))
+
+    assert XAIOAuthAuthenticator().get_access_token() == "grok-oauth-token"
+
+
 def test_get_access_token_refreshes_and_preserves_refresh_token(tmp_path, monkeypatch):
     token_dir, auth_file = _write_auth_file(
         tmp_path,

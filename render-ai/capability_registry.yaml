@@ -4,7 +4,7 @@
 # Start proxy:
 #   litellm --config render-ai/capability_registry.yaml --port 4000
 #
-# Env (see .env.example): ANTHROPIC_API_KEY, OPENAI_API_KEY, MOONSHOT_API_KEY, XAI_API_KEY
+# Env (see .env.example): Grok Build OAuth (~/.grok/auth.json) or XAI_API_KEY fallback
 
 # Capability → provider mapping (Andrew's keys, 2026-06)
 # ┌─────────────────────┬──────────────────────────────────────────────────────────┐
@@ -22,17 +22,17 @@ model_list:
   - model_name: default
     litellm_params:
       model: xai/grok-composer-2.5-fast
-      api_key: os.environ/XAI_API_KEY
+      use_xai_oauth: true
 
   # high-reasoning — INDEX / PLAN / ambiguous RCA
   - model_name: high-reasoning
     litellm_params:
       model: xai/grok-composer-2.5-fast
-      api_key: os.environ/XAI_API_KEY
+      use_xai_oauth: true
   - model_name: high-reasoning
     litellm_params:
       model: xai/grok-4.3
-      api_key: os.environ/XAI_API_KEY
+      use_xai_oauth: true
   - model_name: high-reasoning
     litellm_params:
       model: moonshot/kimi-k2.6
