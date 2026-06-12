@@ -57,7 +57,8 @@ proxy under systemd user service `render-litellm`.
 
 | Capability | Models (fallback order) |
 |------------|-------------------------|
-| `high-reasoning` | Kimi K2.6 → Claude Sonnet 4.5 → Grok 4.1 fast-reasoning |
+| `default` | Grok Composer 2.5 Fast (no-pragma harness traffic) |
+| `high-reasoning` | Grok Composer 2.5 Fast → Grok 4.3 → Kimi K2.6 → Claude Sonnet 4.5 |
 | `high-coding` | Kimi K2.6 → Claude Sonnet 4.5 → GPT-4.1 mini |
 | `cheap-deterministic` | Grok 3 mini → GPT-5 mini → Grok 4.1 fast (non-reasoning) |
 | `multimodal` | Kimi K2.6 → Grok 2 vision → Claude Sonnet 4.5 |

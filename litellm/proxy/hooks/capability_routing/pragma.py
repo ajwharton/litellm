@@ -19,6 +19,7 @@ PRAGMA_PATTERN = re.compile(
 )
 
 DEFAULT_KNOWN_CAPABILITIES: Set[str] = {
+    "default",
     "high-reasoning",
     "high-coding",
     "cheap-deterministic",
@@ -26,6 +27,7 @@ DEFAULT_KNOWN_CAPABILITIES: Set[str] = {
 }
 
 DEFAULT_FAIL_UP_CAPABILITY = "high-reasoning"
+DEFAULT_CAPABILITY = "default"
 
 
 def known_capabilities_from_env() -> Set[str]:
@@ -37,6 +39,15 @@ def known_capabilities_from_env() -> Set[str]:
 
 def fail_up_capability_from_env() -> str:
     return os.getenv("RENDER_CAPABILITY_FAIL_UP", DEFAULT_FAIL_UP_CAPABILITY).strip()
+
+
+def default_capability_from_env() -> str:
+    return os.getenv("RENDER_DEFAULT_CAPABILITY", DEFAULT_CAPABILITY).strip()
+
+
+def is_passthrough_model(model: Optional[str]) -> bool:
+    """Provider-qualified model ids (e.g. moonshot/kimi-k2.7-code) bypass capability groups."""
+    return bool(model and "/" in model)
 
 
 def _content_to_str(content: Any) -> str:
@@ -124,6 +135,7 @@ def resolve_capability(
     model: Optional[str],
     known_capabilities: Set[str],
     fail_up_capability: str,
+    default_capability: Optional[str] = None,
 ) -> Tuple[Optional[str], bool]:
     """
     Resolve the model group name to route to.
@@ -135,7 +147,14 @@ def resolve_capability(
     if capability and capability not in known_capabilities:
         return fail_up_capability, True
 
+    if is_passthrough_model(model):
+        return None, False
+
     if model and model in known_capabilities:
         return model, False
 
-    return None, False
+    resolved_default = (default_capability or DEFAULT_CAPABILITY).strip()
+    if resolved_default in known_capabilities:
+        return resolved_default, False
+
+    return fail_up_capability, False

@@ -10,14 +10,29 @@
 # ┌─────────────────────┬──────────────────────────────────────────────────────────┐
 # │ Capability          │ Providers (try order → fallbacks in router_settings)    │
 # ├─────────────────────┼──────────────────────────────────────────────────────────┤
-# │ high-reasoning      │ Kimi K2.6 → Claude Sonnet 4.5 → Grok fast-reasoning   │
-# │ high-coding         │ Kimi K2.6 → Claude Sonnet 4.5 → GPT-4.1 mini            │
+# │ default             │ Grok Composer 2.5 Fast (harness default)                │
+# │ high-reasoning      │ Grok Composer 2.5 Fast → Grok 4.3 → Kimi K2.6 → Claude  │
+# │ high-coding         │ Kimi K2.7 Code → Kimi K2.6 → Claude Sonnet 4.5          │
 # │ cheap-deterministic │ Grok 3 mini → GPT-5 mini → Grok 4.1 fast (non-reason)  │
 # │ multimodal          │ Kimi K2.6 → Grok 2 vision → Claude Sonnet 4.5           │
 # └─────────────────────┴──────────────────────────────────────────────────────────┘
 
 model_list:
+  # default — no-pragma harness traffic (same primary as high-reasoning)
+  - model_name: default
+    litellm_params:
+      model: xai/grok-composer-2.5-fast
+      api_key: os.environ/XAI_API_KEY
+
   # high-reasoning — INDEX / PLAN / ambiguous RCA
+  - model_name: high-reasoning
+    litellm_params:
+      model: xai/grok-composer-2.5-fast
+      api_key: os.environ/XAI_API_KEY
+  - model_name: high-reasoning
+    litellm_params:
+      model: xai/grok-4.3
+      api_key: os.environ/XAI_API_KEY
   - model_name: high-reasoning
     litellm_params:
       model: moonshot/kimi-k2.6
@@ -26,12 +41,12 @@ model_list:
     litellm_params:
       model: anthropic/claude-sonnet-4-5-20250929
       api_key: os.environ/ANTHROPIC_API_KEY
-  - model_name: high-reasoning
-    litellm_params:
-      model: xai/grok-4-1-fast-reasoning
-      api_key: os.environ/XAI_API_KEY
 
   # high-coding — fenced IMPLEMENT
+  - model_name: high-coding
+    litellm_params:
+      model: moonshot/kimi-k2.7-code
+      api_key: os.environ/MOONSHOT_API_KEY
   - model_name: high-coding
     litellm_params:
       model: moonshot/kimi-k2.6
@@ -92,10 +107,13 @@ model_list:
       api_key: os.environ/XAI_API_KEY
 
 router_settings:
+  # Primary model in each group is listed first; retries pick next deployment on failure.
   routing_strategy: simple-shuffle
   num_retries: 2
   timeout: 120
   fallbacks:
+    - default: ["high-reasoning"]
+    - high-reasoning: ["high-coding"]
     - high-coding: ["high-reasoning"]
     - cheap-deterministic: ["high-coding", "high-reasoning"]
     - multimodal: ["high-reasoning"]

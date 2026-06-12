@@ -18,6 +18,7 @@ from litellm.proxy._types import UserAPIKeyAuth
 from litellm.types.utils import CallTypesLiteral
 
 from .pragma import (
+    default_capability_from_env,
     extract_capability_from_messages,
     fail_up_capability_from_env,
     known_capabilities_from_env,
@@ -39,6 +40,7 @@ class CapabilityRoutingHook(CustomLogger):
         super().__init__(**kwargs)
         self.known_capabilities = known_capabilities or known_capabilities_from_env()
         self.fail_up_capability = fail_up_capability or fail_up_capability_from_env()
+        self.default_capability = default_capability_from_env()
 
     async def async_pre_call_hook(
         self,
@@ -65,6 +67,7 @@ class CapabilityRoutingHook(CustomLogger):
             model=data.get("model"),
             known_capabilities=self.known_capabilities,
             fail_up_capability=self.fail_up_capability,
+            default_capability=self.default_capability,
         )
         if resolved is None:
             return data

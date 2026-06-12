@@ -57,6 +57,32 @@ def test_model_already_capability():
     assert fail_up is False
 
 
+def test_no_pragma_defaults_to_default_capability():
+    known = {"default", "high-reasoning", "high-coding"}
+    resolved, fail_up = resolve_capability(
+        capability=None,
+        model="grok-build",
+        known_capabilities=known,
+        fail_up_capability="high-reasoning",
+        default_capability="default",
+    )
+    assert resolved == "default"
+    assert fail_up is False
+
+
+def test_provider_passthrough_skips_default():
+    known = {"default", "high-reasoning"}
+    resolved, fail_up = resolve_capability(
+        capability=None,
+        model="moonshot/kimi-k2.7-code",
+        known_capabilities=known,
+        fail_up_capability="high-reasoning",
+        default_capability="default",
+    )
+    assert resolved is None
+    assert fail_up is False
+
+
 @pytest.mark.asyncio
 async def test_pre_call_hook_sets_model():
     from litellm.proxy.hooks.capability_routing.main import CapabilityRoutingHook
